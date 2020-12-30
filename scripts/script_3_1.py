@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from pandas.plotting import scatter_matrix
+from sklearn.metrics import roc_auc_score
 
 def gene_weights_naive(model):
 #This function computes the influence of each gene on the model, following the formula (2)
@@ -144,3 +145,21 @@ axes = scatter_matrix(weights, alpha=0.5, diagonal='kde')
 for i, j in zip(*plt.np.triu_indices_from(axes, k=1)):
     axes[i, j].annotate("%.3f" %corr.values[i,j], (0.8, 0.8), xycoords='axes fraction', ha='center', va='center')
 plt.show()
+
+roc_micro = [roc_auc_score(Y_test_df,probs_model1,'micro'),
+             roc_auc_score(Y_test_df,probs_model2,'micro'),
+             roc_auc_score(Y_test_df,probs_model3,'micro'),
+             roc_auc_score(Y_test_df,probs_model4,'micro')]
+
+roc_macro = [roc_auc_score(Y_test_df,probs_model1,'macro'),
+            roc_auc_score(Y_test_df,probs_model2,'macro'),
+            roc_auc_score(Y_test_df,probs_model3,'macro'),
+            roc_auc_score(Y_test_df,probs_model4,'macro')]
+
+roc = pd.DataFrame(columns = Y_train_df.columns.values)
+roc.loc['Nothing',:] = roc_auc_score(Y_test_df,probs_model1,None)
+roc.loc['Dropout Only',:] = roc_auc_score(Y_test_df,probs_model2,None)
+roc.loc['Dropout + l1',:] = roc_auc_score(Y_test_df,probs_model3,None)
+roc.loc['Dropout + k2',:] = roc_auc_score(Y_test_df,probs_model4,None)
+roc['Micro'] = roc_micro
+roc['Macro'] = roc_macro
