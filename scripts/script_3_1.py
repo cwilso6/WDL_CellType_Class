@@ -1,34 +1,19 @@
 import keras
-from keras.layers import Dense, Activation, Dropout
-from keras.models import Sequential, Model
-from keras.utils import to_categorical
-from keras import initializers
-from keras import layers
 from keras import regularizers
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.backends.backend_pdf
 import pandas as pd
-import os
-import collections
-from sklearn import preprocessing
-from sklearn.model_selection import train_test_split, KFold
-import array
-import dill
-import math
-from itertools import chain
-import random as rn
-import tensorflow as tf
-import pickle
-import sys
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from pandas.core.common import flatten
-import time
-import math
-from sklearn.metrics import roc_auc_score
-from keras.callbacks import LearningRateScheduler
-from keras.optimizers import adam
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+def gene_weights_naive(model):
+#This function computes the influence of each gene on the model, following the formula (2)
+    first_layer_weights = abs(pd.DataFrame(model.get_weights()[0], index = X_test_df.columns))
+    second_layer_weights = abs(pd.DataFrame(model.get_weights()[2]))
+    output_layers_wieghts = abs(pd.DataFrame(model.get_weights()[3]))
+    overall_mean_weight = pd.Series(first_layer_weights.dot(second_layer_weights).dot(output_layers_wieghts).mean(axis=1))
+    return(overall_mean_weight)
 
 #Importing Chang data and separiating into feature matrix (X) and one hot enconded responses (Y)
 Chang = pd.read_table("data/Chang_small.txt", sep = ' ', index_col = 0)
@@ -142,9 +127,20 @@ confusion_model4 = pd.crosstab(predicted_type,true_type)
 probs_model4 = pd.DataFrame(predicted_prob, columns = Y_train_df.columns.values, index = Y_test_df.index)
 
 
+weights = pd.DataFrame(index = X_train_df.columns.values,
+                       columns = ['Nothing', 'Dropout Only','Dropout + l1',
+                                  'Dropout + l2'])
+weights['Nothing'] = gene_weights_naive(model_nothing)
+weights['Dropout Only'] = gene_weights_naive(model_dropoutonly)
+weights['Dropout + l1'] =  gene_weights_naive(model_dropoutL1)
+weights['Dropout + l2'] = gene_weights_naive(model_dropoutL2)
 
+#Divide each column by it's total to get them on same scale for comparison
+weights = weights.div(weights.sum(axis=0))
+corr = weights.corr() #Correlation matrix of each of the four methods
+print(corr)
 
-
-
-
-
+axes = scatter_matrix(weights, alpha=0.5, diagonal='kde')
+for i, j in zip(*plt.np.triu_indices_from(axes, k=1)):
+    axes[i, j].annotate("%.3f" %corr.values[i,j], (0.8, 0.8), xycoords='axes fraction', ha='center', va='center')
+plt.show()
